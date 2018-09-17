@@ -238,31 +238,42 @@ to move-random [ ? ?1 ]
     let max-count 0
     let extraspc 0
     let check-dirties 0
+    ;; Verifica posições
     if member? heading [ 45 315 225 135 ]
     [ set extraspc 1 ]
+    ;; Enquanto for possivel o movimento
     while [(any? walls-on patch-ahead (2 + extraspc) or any? vacuum-on patch-ahead (2 + extraspc)
       or not (member? ([pxcor] of patch-ahead (2 + extraspc)) valid-corx
         and member? ([pycor] of patch-ahead (2 + extraspc)) valid-cory))
       or (smart-moves? = false and intel-level = 1 and (not any? (dirties-on patch-ahead (2 + extraspc)) with [color = 5] and max-count < 8))
      ]
     [
+      ;; Seta posições
       set heading heading - 45
       set extraspc 0
+      ;; Verifica posições
       if member? heading [ 45 315 225 135 ]
       [ set extraspc 1 ]
+      ;; Incrementa contador
       set max-count max-count + 1
     ]
+    ;; Se o contador dor diferente de 0
     if max-count != 4 [
       ifelse max-count != 4 and member? heading [ 0 90 180 270 360 ][
+        ;; Move o patch
         move-to patch-ahead 2
+        ;; Angulo do movimento
         set curposx curposx + round (sin heading)
         set curposy curposy + round (cos heading)
       ]
+      ;; Move o patch
       [
         move-to patch-ahead (2 + extraspc)
+        ;; Angulo do movimento
         set curposx curposx + round (sin heading / sin 45)
         set curposy curposy + round (cos heading / sin 45)
       ]
+      ;; Verificações de percurso
       ifelse curposx > percmax-x
               [ set percmax-x curposx ]
       [
@@ -275,15 +286,18 @@ to move-random [ ? ?1 ]
         if curposy < percmin-y
         [ set percmin-y curposy ]
       ]
+      ;; Se for 1, seta posições
       if ?1 = 0 [
         set heading heading - one-of [45 90 135 180 225 270]
       ]
     ]
   ]
 end
-
+;; Mover inteligente
 to move-smart [ ? ?1]
+  ;; Verifica se esta limpo
   ask cleaner ? [
+    ;; Verifica se é menor que 8
     ifelse ?1 < 8[
       let extraspc 0
       if member? heading [ 45 315 225 135 ]
@@ -318,15 +332,20 @@ to move-smart [ ? ?1]
   ]
 end
 
+;; Mover inteligenteA
 to move-smartA [ ? ]
+  ;; Inicia variaveis uteis
   let counter 0
   let hipposx 0
   let hipposy 0
   let possibW [ ]
   let possib [ ]
+  ;; Verifica se esta limpo
   ask cleaner ? [
+    ;; Enquanto for menor que 8
     while [ counter < 8 ] [
       let extraspc 0
+      ;; 
       if member? heading [ 45 315 225 135 ]
       [ set extraspc 1 ]
       if not (any? walls-on patch-ahead (2 + extraspc) or any? vacuum-on patch-ahead (2 + extraspc)
