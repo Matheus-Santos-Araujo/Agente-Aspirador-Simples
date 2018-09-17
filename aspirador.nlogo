@@ -1,6 +1,8 @@
+;; Elementos
 breed [dirties dirty]
 breed [walls wall]
 breed [vacuum cleaner]
+;; Aspirador
 vacuum-own [
   percmax-x
   percmin-x
@@ -16,6 +18,7 @@ vacuum-own [
   possib-whites
   dir
 ]
+;; Variaveis globais uteis
 globals [
   stress-results
   valid-corx
@@ -23,47 +26,69 @@ globals [
   usable-area
   unoperating
 ]
+;; Inicializado no setup
 to setup
+  ;; Limpa tela
   clear-all
+  ;; Seta os patches
   set-patch-size 16 * zoom / 100
+  ;; Inicia o contador X
   let counter pxmin
+  ;; Inicializa os vetores em X e Y
   set valid-corx [ ]
   set valid-cory [ ]
+  ;; Efetua enquanto o contador nao atingir o maximo
   while [counter <= pxmax]
   [
+    ;; Atualiza o X 
     set valid-corx lput counter valid-corx
+    ;; Incrementa o contador
     set counter counter + 2
   ]
+  ;;S eta o contador Y
   set counter pymin
+  ;; Efetua enquanto o contador nao atingir o maximo
   while [counter <= pymax]
   [
+    ;; Atualiza o contador
     set valid-cory lput counter valid-cory
+    ;; Incrementa o contador
     set counter counter + 2
   ]
+  ;; Area utilizada é definida
   set usable-area (length valid-corx * length valid-cory)
+  ;; Seta o carro
   set-default-shape vacuum "car"
+  ;; Seta o circulo
   set-default-shape dirties "circle"
+  ;; Seta o quadrado
   set-default-shape walls "square"
+  ;; Seta o quarto com o tamanho das tartarugas
   setup-room
   ask turtles [set size 2.5]
   reset-ticks
   set stress-results 0
 end
-
+;; Ao setar o quarto, seta os obstaculos, o aspirador e a sujeira
 to setup-room
   ask patches [ set pcolor 9 ]
   setup-obstacles
   setup-dirties
   setup-vacuum one-of valid-corx one-of valid-cory
 end
-
+;; Seta os obstaculos 
 to setup-obstacles
+  ;; Cria na posição determinada
   create-walls round (20 * usable-area / 100) [ setxy one-of valid-corx one-of valid-cory
+    ;; Seta a cor preta
     set color black
+   ;; Enquanto estiver vazio coloca tartarugas
     while [any? other turtles-here ]
+    ;; Seta no X e y
     [ setxy one-of valid-corx one-of valid-cory ]
   ]
 end
+;; Reseta o aspirador, reinicializando as coordenadas
 to reset-vacuum
   ask self [
     set heading one-of [ 45 90 135 180 ]
@@ -83,76 +108,116 @@ to reset-vacuum
     set possib-whites [ ]
   ]
 end
+;; Seta aspirador
 to setup-vacuum [ ?1 ?2 ]
+  ;; Cria os aspiradores nas posicoes determinadas
   create-vacuum quant-cleaners [ setxy ?1 ?2
     set heading 90
     set color ((who - 1) * 10) + 15
+    ;; Reseta o aspirador
     reset-vacuum
+    ;; Enquanto estiver vazio coloca tartarugas
     while [any? other walls-here or any? other vacuum-here]
+    ;; Seta no X e y
     [ setxy one-of valid-corx one-of valid-cory ]
   ]
 end
-
+;; Setas as sujeitas
 to setup-dirties
+  ;; Cria as sujeiras nas posicoes determinadas
   create-dirties round ((dirty-quant / 100) * (80 * usable-area / 100)) [ setxy one-of valid-corx one-of valid-cory
+    ;; Seta a cor preta
     set color 5
+    ;; Enquanto estiver vazio coloca tartarugas
     while [ any? other turtles-here ]
+    ;; Seta no X e y
     [ setxy one-of valid-corx one-of valid-cory ]
   ]
 end
-
+;; Resultados
 to re-run
+  ;; Roda os resultados
   if ticks > 1 [
+    ;; Se não tiver resultado
     ifelse stress-results != 0
+    ;;; Seta o resultado por dois
     [ set stress-results ((stress-results + ticks) / 2) ]
+    ;; Seta o resultado
     [ set stress-results ticks]
   ]
+  ;; Reseta perspectiva
   reset-perspective
+  ;; Reseta os movimentos
   reset-ticks
+  ;; Limpa o plot
   clear-plot
+  ;; Seta os patches
   set-patch-size 16 * zoom / 100
+  ;; Inicializa o contador
   let counter 0
+  ;; Enquanto o contador for menor que os cleaners 
   while [ counter < quant-cleaners ] [ ask cleaner (counter + count walls + count dirties) [
+    ;; Seta xy com o novo valor
     setxy (xcor - ( 2 * curposx )) (ycor - ( 2 * curposy ))
+    ;; Reseta o aspirador
     reset-vacuum
     ]
+    ;; Incrementa o contador
     set counter counter + 1
   ]
+  ;; Seta um naooperacional
   set unoperating 0
+  ;; Seta a cor das sujeiras
   ask dirties [ set color 5 ]
 end
-
+;; Pega a sujeira
 to get-dirty [ ? ]
+  ;; Verifica se está limpo
   ask cleaner ? [
+    ;;Verifica se tem sujeira
     ask dirties-here [
+      ;;Seta a cor
       set color 8
       ;can change deterministic behavior
     ]
+    ;; Incrementa o score
     set score score + 1
   ]
 end
-
+;; Inicializando
 to go
+  ;; Seta os componentes
   if not any? dirties with [color = 5] or ticks = 144000 or not any? vacuum or unoperating >= quant-cleaners
   [
+    ;; Se o contador do aspirador for maior que um atualiza os cleaner e os scores
     if count vacuum > 1 [      watch item (quant-cleaners - 1) (sort-on [score] vacuum)    ]
+    ;; Para
     stop
   ]
   tick
+  ;; Inicializa o contador 
   let counter 0
+  ;; Enquanto o contador for menor que a quantidade de cleaners
   while [ counter < quant-cleaners ]
   [
+    ;; Incrementa contador quantidade de obstaculos e sujeiras
     ask cleaner (counter + count walls + count dirties) [
+      ;; Se for igual a zero a desistencia
       if (gave-up-at = 0)[
+        ;; Faz a logica de desempenho com score e movimentos
         ifelse ((score / ticks) < (0.25 * dirty-quant / 100))
         and ticks >= round((2 * (1 + percmax-x - percmin-x) * (1 + percmax-y - percmin-y)) + handcap) and not any? dirties-here with [color = 5][
           set gave-up-at ticks
           set unoperating unoperating + 1
         ]
         [
+          ;; Verifica se esta vazio e seta a cor
           ifelse any? dirties-here with [color = 5]
+          ;; Incrementa contador quantidade de obstaculos e sujeiras
           [ get-dirty (counter + count walls + count dirties) ]
+          ;; Se for movimento inteligente
           [ ifelse smart-moves?
+            ;; Realiza movimento
             [ ifelse intel-level > 0 and count-possib = 0 [move-smartA (counter + count walls + count dirties) ]
               [move-smart (counter + count walls + count dirties) 1]
             ]
@@ -161,12 +226,15 @@ to go
         ]
       ]
     ]
+    ;; Incrementa contador
     set counter counter + 1
   ]
 end
-
+;; Movimento aleatorio
 to move-random [ ? ?1 ]
+  ;; Verifica se esta limpo
   ask cleaner ? [
+    ;; Variaveis uteis
     let max-count 0
     let extraspc 0
     let check-dirties 0
